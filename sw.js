@@ -1,9 +1,9 @@
 const prefix = "vhd-voice-shell-";
-const cacheName = prefix + "v2.1.0";
+const cacheName = prefix + "v2.2.0";
 const scope = self.registration.scope;
 const files = [
-  "./", "./index.html", "./field.html", "./field.css?v=2.1", "./unified.mjs?v=2.1",
-  "./unified-data.mjs", "./field-import.mjs", "./commands.mjs", "./legacy.html", "./manifest.webmanifest",
+  "./", "./index.html", "./field.html", "./field.css?v=2.2", "./unified.mjs?v=2.2",
+  "./unified-data.mjs", "./field-import.mjs", "./commands.mjs?v=2.2", "./legacy.html", "./manifest.webmanifest",
 ];
 const shell = new Set(files.map(path => new URL(path, scope).href));
 

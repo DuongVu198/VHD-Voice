@@ -90,3 +90,11 @@ textarea { resize: vertical; }
 .household .primary { flex: 0 1 auto; }
 #active-household { font-weight: 700; }
 #household-picker { margin-bottom: .85rem; }
+#spec { touch-action: manipulation; }
+#household-confirm { width: min(27rem, calc(100% - 2rem)); border: 1px solid var(--line); border-radius: 1rem; padding: 1.15rem; color: var(--ink); }
+#household-confirm::backdrop { background: #15382f66; }
+#household-confirm p { margin-top: 0; line-height: 1.5; }
+.danger-text { color: #8c321f; }
+#trash { margin-top: .85rem; }
+#trash summary { cursor: pointer; font-weight: 650; }
+#trash-list li + li { margin-top: .5rem; }

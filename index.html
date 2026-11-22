@@ -7,8 +7,8 @@
   <title>VHD Voice · Nhập liệu hiện trường</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./assets/icon-192.png">
-  <link rel="stylesheet" href="./field.css?v=2.1">
-  <script type="module" src="./unified.mjs?v=2.1"></script>
+  <link rel="stylesheet" href="./field.css?v=2.2">
+  <script type="module" src="./unified.mjs?v=2.2"></script>
 </head>
 <body>
   <header class="topbar">
@@ -32,12 +32,17 @@
         <button type="button" class="secondary" id="backup-all" hidden>Sao lưu toàn bộ</button>
         <input id="file-input" type="file" accept=".json,application/json" hidden>
       </div>
+      <details id="trash" hidden>
+        <summary>Hồ sơ đã xóa</summary>
+        <ul id="trash-list"></ul>
+      </details>
       <div id="session-controls" hidden>
         <p id="active-household"></p>
         <p id="backup-status" role="status"></p>
         <div class="form-actions">
           <button type="button" class="secondary" id="update-file">Cập nhật file</button>
           <button type="button" class="text-button" id="close-household">Đóng hồ sơ</button>
+          <button type="button" class="text-button danger-text" id="trash-household">Xóa hồ sơ</button>
         </div>
       </div>
     </section>
@@ -67,13 +72,10 @@
             <label id="spec-field">Thông số kỹ thuật
               <textarea id="spec" rows="2" inputmode="none" autocomplete="off" aria-describedby="spec-preview"></textarea>
             </label>
-            <p id="spec-preview" class="status" hidden></p>
-            <label id="length-field">Chiều dài <span class="unit">(m)</span>
-              <input id="length" inputmode="none" autocomplete="off" placeholder="Nếu có">
-            </label>
+            <p id="spec-preview" class="status">Phép tính: —</p>
             <div class="measurements" id="tree-fields" hidden>
               <label>Đường kính <span class="unit">(cm)</span>
-                <input id="diameter" inputmode="none" autocomplete="off">
+                <input id="diameter" inputmode="none" autocomplete="off" placeholder="Nếu có">
               </label>
               <label>Chiều cao <span class="unit">(m)</span>
                 <input id="height" inputmode="none" autocomplete="off" placeholder="Nếu có">
@@ -109,5 +111,14 @@
       </section>
     </div>
   </main>
+  <dialog id="household-confirm" aria-labelledby="confirm-message">
+    <form method="dialog">
+      <p id="confirm-message"></p>
+      <div class="form-actions">
+        <button class="secondary" value="no" autofocus>Không</button>
+        <button class="primary" value="yes">Có</button>
+      </div>
+    </form>
+  </dialog>
 </body>
 </html>

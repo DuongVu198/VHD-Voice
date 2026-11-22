@@ -227,10 +227,12 @@ export function validateAsset(mode, fields, originalSpec) {
       : { error: "Hãy điền số hoặc phép tính đầy đủ trong ô Thông số kỹ thuật." };
   }
 
-  const diameterCm = readNumber(fields.diameter ?? "", "diameter");
+  const diameterCm = fields.diameter?.trim() ? readNumber(fields.diameter, "diameter") : null;
   const heightM = fields.height?.trim() ? readNumber(fields.height, "height") : null;
   const quantity = readNumber(fields.quantity ?? "", "quantity");
-  if (!Number.isFinite(diameterCm) || diameterCm <= 0) return { error: "Hãy điền đường kính lớn hơn 0 cm." };
+  if (diameterCm !== null && (!Number.isFinite(diameterCm) || diameterCm <= 0)) {
+    return { error: "Hãy điền đường kính lớn hơn 0 cm hoặc để trống." };
+  }
   if (heightM !== null && (!Number.isFinite(heightM) || heightM <= 0)) return { error: "Hãy điền chiều cao lớn hơn 0 m hoặc để trống." };
   if (!Number.isSafeInteger(quantity) || quantity <= 0) return { error: "Hãy điền số lượng bằng số nguyên lớn hơn 0." };
   return { asset: { mode, name, diameterCm, heightM, quantity } };
