@@ -12,10 +12,10 @@
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 body { margin: 0; }
-button, input, textarea { font: inherit; }
+button, input, select, textarea { font: inherit; }
 button { min-height: 44px; cursor: pointer; }
 button:disabled { cursor: default; opacity: .58; }
-button:focus-visible, input:focus-visible, textarea:focus-visible {
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
   outline: 3px solid #218669;
   outline-offset: 3px;
 }
@@ -42,7 +42,7 @@ h2 { margin: 0; font-size: 1.15rem; }
 .measurements { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .55rem; }
 label { display: block; font-weight: 600; font-size: .9rem; }
 .unit, .storage-note { font-weight: 400; color: var(--muted); }
-input, textarea {
+input, select, textarea {
   display: block;
   width: 100%;
   min-height: 44px;
@@ -75,8 +75,11 @@ textarea { resize: vertical; }
 .math-keys button { border: 1px solid var(--line); border-radius: .45rem; background: #edf6f0; color: var(--ink); }
 .math-keys [data-key="done"] { grid-column: span 2; }
 .asset-heading .asset-name { color: var(--brand); }
-.asset-actions { display: flex; }
+.asset-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; }
 .household { margin-bottom: 1rem; }
 .household .form-actions { margin-top: .8rem; }
 .household .primary { flex: 0 1 auto; }
 #active-household { font-weight: 700; }
+#household-picker { margin-bottom: .85rem; }
+#continuous { margin-top: .85rem; }
+#continuous summary { min-height: 44px; padding-block: .65rem; cursor: pointer; color: var(--brand); font-weight: 650; }

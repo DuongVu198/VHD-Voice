@@ -2,122 +2,125 @@
 <html lang="vi">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#10253c">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="VHD Voice">
-  <meta name="description" content="Ứng dụng nhập tài sản hiện trường bằng giọng nói và xuất JSON cho VHD Software.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#15382f">
+  <title>VHD Voice · Nhập liệu hiện trường</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./assets/icon-192.png">
-  <link rel="icon" type="image/png" href="./assets/icon-192.png">
-  <link rel="stylesheet" href="./styles.css">
-  <title>VHD Voice · Kê khai tài sản</title>
+  <link rel="stylesheet" href="./field.css">
+  <script type="module" src="./unified.mjs"></script>
 </head>
 <body>
-  <div class="app-shell">
-    <header class="topbar">
-      <div class="brand"><span class="brand-mark">V</span><div><b>VHD <span>VOICE</span></b><small>Kê khai tài sản hiện trường</small></div></div>
-      <span class="local-pill" title="Dữ liệu chỉ lưu trên thiết bị">● Lưu trên máy</span>
-    </header>
-    <main><p class="panel-head" style="padding: 12px 22px; margin: 0"><a href="./field.html">Mở nhập liệu Nhà và Cây</a></p>
-      <section class="hero">
-        <p class="eyebrow">ỨNG DỤNG NHẬP LIỆU V1.0</p>
-        <h1>Đọc giọng nói.<br><span>Ghi tài sản chính xác.</span></h1>
-        <p>Lưu theo từng hộ, kiểm tra trước khi xuất JSON cho phần mềm kê khai Windows.</p>
-      </section>
-      <section class="stats" aria-label="Thống kê">
-        <div><strong id="stat-households">0</strong><span>Hộ dân</span></div>
-        <div><strong id="stat-assets">0</strong><span>Tài sản</span></div>
-        <div><strong id="stat-confirmed">0</strong><span>Đã xác nhận</span></div>
-      </section>
-      <nav class="tabs" aria-label="Các màn hình">
-        <button class="tab active" type="button" data-tab="entry">🎙️ Nhập liệu</button>
-        <button class="tab" type="button" data-tab="list">☷ Tài sản</button>
-        <button class="tab" type="button" data-tab="export">⇪ Xuất file</button>
-      </nav>
-      <section class="panel" id="entry-view">
-        <div class="panel-head"><h2>Hộ đang kê khai</h2><button class="plain-btn" id="new-household" type="button">+ Thêm hộ</button></div>
-        <div class="inline-grid">
-          <label>Chọn hộ dân
-            <select id="household-select"><option value="">— Chưa có hộ —</option></select>
+  <header class="topbar">
+    <div class="shell">VHD Voice · Kiểm kê GPMB</div>
+  </header>
+  <main class="shell">
+    <h1>Nhập liệu hiện trường</h1>
+    <section class="panel household" aria-label="Hồ sơ hộ">
+      <div id="household-picker">
+        <label id="saved-households-label">Chọn hồ sơ hộ<select id="saved-households"></select></label>
+        <p id="no-households" hidden>Chưa có hồ sơ trong danh sách.</p>
+      </div>
+      <div id="new-household-fields">
+      <label>Tên hộ
+        <input id="household-name" autocomplete="name" placeholder="Nhập tên hộ để bắt đầu">
+      </label>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="primary" id="new-household">Bắt đầu hồ sơ</button>
+        <button type="button" class="secondary" id="open-file">Mở file đã lưu</button>
+        <button type="button" class="secondary" id="backup-all" hidden>Sao lưu toàn bộ</button>
+        <button type="button" class="secondary" id="legacy-preview" hidden>Xem hồ sơ VHD Voice cũ</button>
+        <input id="file-input" type="file" accept=".json,application/json" hidden>
+      </div>
+      <div id="legacy-profiles" hidden>
+        <p>Chọn hồ sơ muốn sao chép vào bản hợp nhất.</p>
+        <ul id="legacy-list"></ul>
+      </div>
+      <p><a href="./legacy.html">Mở bản VHD Voice cũ để sao lưu</a></p>
+      <div id="session-controls" hidden>
+        <p id="active-household"></p>
+        <p id="backup-status" role="status"></p>
+        <div class="form-actions">
+          <button type="button" class="secondary" id="update-file">Cập nhật file</button>
+          <button type="button" class="text-button" id="close-household">Đóng hồ sơ</button>
+        </div>
+      </div>
+    </section>
+    <p id="status" class="status" role="status" hidden></p>
+    <div class="columns" id="workspace" hidden>
+      <section class="panel" aria-label="Nhập tài sản">
+        <div class="choices" role="group" aria-label="Loại tài sản">
+          <button type="button" data-mode="house" aria-pressed="true">Nhà/Công trình</button>
+          <button type="button" data-mode="tree" aria-pressed="false">Cây</button>
+        </div>
+        <details id="continuous">
+          <summary>Đọc liên tục</summary>
+          <p id="continuous-example"></p>
+          <label>Nội dung kê khai
+            <textarea id="continuous-input" rows="3" autocomplete="off"></textarea>
           </label>
-          <button class="secondary edit-household" id="edit-household" type="button" disabled>Sửa thông tin hộ</button>
-        </div>
-        <div class="subpanel">
-          <div class="panel-head tight"><h2>Chế độ nhập</h2><span class="muted">Chọn cách đọc</span></div>
-          <div class="mode-switch" role="group" aria-label="Chế độ đọc">
-            <button type="button" class="mode active" data-mode="single">Từng tài sản</button>
-            <button type="button" class="mode" data-mode="continuous">Đọc liên tục</button>
+          <div class="form-actions">
+            <button type="button" class="secondary" id="continuous-preview">Xem trước</button>
+            <button type="button" class="primary" id="continuous-save" hidden>Lưu các dòng đã kiểm tra</button>
           </div>
-          <p class="helper" id="mode-hint">Đọc một tài sản mỗi lần để dễ kiểm tra thông số.</p>
-          <label for="voice-text">Nội dung kê khai</label>
-          <textarea id="voice-text" rows="5" placeholder="Ví dụ: Cây xoài, số lượng 3 cây, đường kính 20 cm, cao 4 mét."></textarea>
-          <div class="mic-help"><span class="mic-symbol" aria-hidden="true">🎙</span><p><b>Dùng giọng nói trên iPhone:</b> chạm ô trên → mở bàn phím → bấm biểu tượng micro trên bàn phím tiếng Việt → đọc nội dung.</p></div>
-          <div class="actions"><button class="secondary" type="button" id="example-btn">Dán ví dụ</button><button class="primary" id="parse-btn" type="button">Phân tích & thêm tài sản</button></div>
-          <p class="helper">Dữ liệu được thêm ở trạng thái <b>cần kiểm tra</b>. Mở từng tài sản để xác nhận trước khi xuất phương án.</p>
+          <ol id="continuous-results"></ol>
+        </details>
+        <form id="asset-form" novalidate>
+          <div class="voice">
+            <div class="voice-actions">
+              <button type="button" class="secondary" id="stop" hidden>Dừng mic</button>
+              <button type="button" class="secondary" id="keyboard-dictation" aria-pressed="false">Dùng mic bàn phím</button>
+            </div>
+            <p id="guide" class="guide"></p>
+
+          </div>
+          <div class="fields">
+            <label>Tiêu đề
+              <input id="title" autocomplete="off" placeholder="Nếu có">
+            </label>
+            <label><span id="name-label">Tên tài sản</span>
+              <input id="name" autocomplete="off">
+            </label>
+            <label id="spec-field">Thông số kỹ thuật
+              <textarea id="spec" rows="2" inputmode="none" autocomplete="off" aria-describedby="spec-preview"></textarea>
+            </label>
+            <p id="spec-preview" class="status" hidden></p>
+            <div id="math-keys" class="math-keys" role="group" aria-label="Bàn phím phép tính" hidden>
+              <button type="button" data-key="7">7</button><button type="button" data-key="8">8</button><button type="button" data-key="9">9</button><button type="button" data-key="/">÷</button>
+              <button type="button" data-key="4">4</button><button type="button" data-key="5">5</button><button type="button" data-key="6">6</button><button type="button" data-key="x">×</button>
+              <button type="button" data-key="1">1</button><button type="button" data-key="2">2</button><button type="button" data-key="3">3</button><button type="button" data-key="-">−</button>
+              <button type="button" data-key="(">(</button><button type="button" data-key="0">0</button><button type="button" data-key=")">)</button><button type="button" data-key="+">+</button>
+              <button type="button" data-key=",">,</button><button type="button" data-key="backspace" aria-label="Xóa ký tự">⌫</button><button type="button" data-key="done">Xong</button>
+            </div>
+            <div class="measurements" id="tree-fields" hidden>
+              <label>Đường kính <span class="unit">(cm)</span>
+                <input id="diameter" inputmode="decimal" autocomplete="off">
+              </label>
+              <label>Chiều cao <span class="unit">(m)</span>
+                <input id="height" inputmode="decimal" autocomplete="off" placeholder="Nếu có">
+              </label>
+              <label>Số lượng <span class="unit">(cây)</span>
+                <input id="quantity" inputmode="numeric" autocomplete="off">
+              </label>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="secondary" id="save">Lưu</button>
+              <button type="button" class="text-button" id="cancel" hidden>Bỏ bản nháp</button>
+            </div>
+          </div>
+        </form>
+      </section>
+      <section class="panel saved" aria-labelledby="saved-title">
+        <div class="saved-heading">
+          <h2 id="saved-title">Tài sản đã lưu</h2>
+          <span id="count" class="count" aria-label="Số tài sản đã lưu">0</span>
         </div>
-        <div class="panel-head"><h2>Vừa thêm vào danh sách</h2><span id="entry-count" class="count-pill">0 tài sản</span></div>
-        <div id="entry-assets" class="asset-list"><div class="empty">Chưa có tài sản. Hãy tạo hộ và nhập nội dung kê khai.</div></div>
+        <p id="empty" class="empty">Chưa có tài sản nào.</p>
+        <ul id="assets"></ul>
+        <p class="storage-note">Dữ liệu lưu trong trình duyệt này.</p>
       </section>
-      <section class="panel hidden" id="list-view">
-        <div class="panel-head"><h2>Danh sách tài sản</h2><span class="muted" id="list-caption">Theo hộ được chọn</span></div>
-        <label>Chọn hộ dân
-          <select id="list-household-select"><option value="">— Chưa có hộ —</option></select>
-        </label>
-        <div id="all-assets" class="asset-list"><div class="empty">Chưa có tài sản.</div></div>
-      </section>
-      <section class="panel hidden" id="export-view">
-        <div class="panel-head"><h2>Dự án & xuất dữ liệu</h2><span class="count-pill">JSON v1</span></div>
-        <label>Tên dự án
-          <input id="project-name" type="text" placeholder="Ví dụ: Dự án bồi thường đường A">
-        </label>
-        <p class="helper">Tên dự án lưu tự động sau khi thay đổi.</p>
-        <div class="export-summary" id="export-summary"></div>
-        <button class="primary full" id="export-household" type="button">Xuất JSON của hộ đang chọn</button>
-        <button class="secondary full" id="export-project" type="button">Xuất JSON toàn bộ dự án</button>
-        <div class="rule"></div>
-        <h3>Khôi phục từ file JSON</h3>
-        <p class="helper">Nhập file đã sao lưu để khôi phục. Thao tác này sẽ thay thế dữ liệu đang lưu trên thiết bị sau khi bạn xác nhận.</p>
-        <label class="file-button" for="import-json">Chọn file JSON để khôi phục</label>
-        <input type="file" id="import-json" accept=".json,application/json" hidden>
-        <div class="security-note"><b>Quyền riêng tư:</b> ứng dụng không tự gửi dữ liệu hộ dân lên máy chủ. Hãy xuất file sao lưu thường xuyên và không đăng file có thông tin cá nhân lên nơi công cộng.</div>
-      </section>
-      <footer>VHD Software · Bản thử nghiệm 1.0 · Nhận dạng giọng nói sử dụng micro trên bàn phím iPhone.</footer>
-    </main>
-  </div>
-  <dialog id="household-dialog" class="edit-dialog">
-    <form method="dialog" id="household-form">
-      <div class="dialog-head"><h2 id="household-dialog-title">Thêm hộ dân</h2><button class="icon-btn" value="cancel" formnovalidate aria-label="Đóng" type="submit">✕</button></div>
-      <label>Ký hiệu hộ (KH) <input id="household-kh" required maxlength="50" placeholder="Ví dụ: H01"></label>
-      <label>Họ và tên chủ tài sản <input id="household-name" required maxlength="160" placeholder="Nguyễn Văn A"></label>
-      <div class="dialog-actions"><button class="secondary" value="cancel" formnovalidate>Hủy</button><button class="primary" value="save">Lưu hộ dân</button></div>
-    </form>
-  </dialog>
-  <dialog id="asset-dialog" class="edit-dialog">
-    <form method="dialog" id="asset-form">
-      <div class="dialog-head"><h2>Kiểm tra tài sản</h2><button class="icon-btn" value="cancel" formnovalidate aria-label="Đóng" type="submit">✕</button></div>
-      <label>Danh mục tài sản <input id="asset-name" required maxlength="160"></label>
-      <div class="two-col">
-        <label>Loại tài sản<select id="asset-type"><option value="tree">Cây cối</option><option value="other">Tài sản khác</option></select></label>
-        <label>Đơn vị tính <input id="asset-unit" maxlength="30" placeholder="cây, cái, m²..."></label>
-      </div>
-      <label>Số lượng <input id="asset-quantity" inputmode="decimal" placeholder="Để trống nếu chưa rõ"></label>
-      <h3>Thông số kỹ thuật (để trống nếu không có)</h3>
-      <div class="two-col">
-        <label>Đường kính (cm)<input id="asset-diameter" inputmode="decimal"></label>
-        <label>Chu vi (cm)<input id="asset-circumference" inputmode="decimal"></label>
-        <label>Chiều cao (m)<input id="asset-height" inputmode="decimal"></label>
-        <label>Chiều dài (m)<input id="asset-length" inputmode="decimal"></label>
-        <label>Chiều rộng (m)<input id="asset-width" inputmode="decimal"></label>
-        <label>Chiều dày (cm)<input id="asset-thickness" inputmode="decimal"></label>
-      </div>
-      <label>Câu nói gốc<textarea id="asset-raw" rows="3"></textarea></label>
-      <div id="asset-warning" class="warning"></div>
-      <div class="dialog-actions wrap"><button class="danger" id="asset-delete" type="button">Xóa</button><button class="secondary" value="draft" formnovalidate>Lưu nháp</button><button class="primary" value="confirm">Xác nhận</button></div>
-    </form>
-  </dialog>
-  <div id="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="./app.js"></script>
+    </div>
+  </main>
 </body>
 </html>
