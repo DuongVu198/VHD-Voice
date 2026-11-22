@@ -1,5 +1,5 @@
 import { readHouseholds } from "./field-import.mjs";
-import { parseCommands, validateAsset } from "./commands.mjs";
+
 
 const legacyKey = "vhd-voice-v1";
 
@@ -56,21 +56,4 @@ export function readBackup(data) {
     throw new Error("Invalid or duplicate household ID");
   }
   return records;
-}
-
-export function readContinuous(text, mode) {
-  return text.split(/\s*(?:\btiếp theo\b|[\r\n;]+)\s*/iu).map(raw => raw.trim()).filter(Boolean).map(raw => {
-    let fields;
-    if (mode === "house") {
-      const [name, spec = ""] = raw.split(/\s+thông số(?: kỹ thuật)?\s*[:：]?\s*/iu, 2);
-      fields = { name, spec: spec.replace(/[,!.?…:]+$/u, "") };
-    } else {
-      const parsed = parseCommands(mode, raw.replace(/(?<=\s)chiều\s+cao(?=\s)/giu, "cao"));
-      if (parsed.error || (Object.hasOwn(parsed.fields, "height") && !parsed.fields.height)) {
-        return { raw, error: parsed.error ?? "Hãy nhập giá trị chiều cao hoặc bỏ cụm chiều cao." };
-      }
-      fields = parsed.fields;
-    }
-    return { raw, ...validateAsset(mode, fields) };
-  });
 }

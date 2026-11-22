@@ -1,5 +1,5 @@
 import { formatHouseSpec, formatTitle, normalizeMathSymbols, readNumber, validateAsset } from "./commands.mjs";
-import { readBackup, readContinuous, readLegacyProfiles } from "./unified-data.mjs";
+import { readBackup, readLegacyProfiles } from "./unified-data.mjs";
 
 const find = id => document.getElementById(id);
 const form = find("asset-form");
@@ -11,16 +11,18 @@ const save = find("save");
 const list = find("assets");
 const status = find("status");
 const modeButtons = [...document.querySelectorAll("[data-mode]")];
-const inputs = Object.fromEntries(["title", "name", "spec", "diameter", "height", "quantity"]
+const inputs = Object.fromEntries(["title", "name", "spec", "length", "diameter", "height", "quantity"]
   .map(key => [key, find(key)]));
 const storageKey = "gpmb-field-assets-v1";
 const storageKeys = { house: "gpmb-field-house-v2", tree: "gpmb-field-tree-v2" };
 const householdPrefix = "gpmb-household-v3:";
 const activeKey = "gpmb-active-household-v3";
 const mathKeys = find("math-keys");
+const numberDictation = find("number-dictation");
+const numericFields = new Set(["spec", "length", "diameter", "height", "quantity"]);
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const fieldLabels = {
-  title: "tiêu đề", spec: "thông số kỹ thuật", diameter: "đường kính",
+  title: "tiêu đề", spec: "thông số kỹ thuật", length: "chiều dài", diameter: "đường kính",
   height: "chiều cao", quantity: "số lượng",
 };
 const microphoneErrors = {
@@ -40,9 +42,9 @@ let recognition = null;
 let activeHousehold = null;
 let micTimer = null;
 let useKeyboardDictation = true;
-let continuousRows = [];
-let legacyProfiles = [];
-const continuousInput = find("continuous-input");
+let keypadField = null;
+let dictationField = null;
+let retainedProfiles = new Map();
 
 function notify(message = "", tone = "") {
   status.textContent = message;
@@ -55,24 +57,21 @@ function currentFields() {
 }
 
 function hasDraft() {
-  return hasFieldDraft() || Boolean(continuousInput.value.trim());
-}
-
-function hasFieldDraft() {
   return Object.values(currentFields()).some(value => value.trim());
 }
 
 function householdDraft() {
-  return { mode, editingId, fields: currentFields(), continuous: continuousInput.value };
+  return { mode, editingId, fields: currentFields() };
 }
 
 function renderForm() {
   const tree = mode === "tree";
   find("name-label").textContent = tree ? "Tên cây" : "Tên tài sản";
   find("guide").textContent = useKeyboardDictation
-    ? "Chạm ô cần nhập rồi bấm biểu tượng micro trên bàn phím."
+    ? "Chạm ô để nhập. Với ô số, chọn Dùng mic bàn phím nếu muốn đọc."
     : "Chạm ô cần nhập. Khi thấy Đang nghe, hãy đọc rồi chạm ô khác hoặc bấm Lưu.";
   find("spec-field").hidden = tree;
+  find("length-field").hidden = tree;
   find("tree-fields").hidden = !tree;
   for (const button of modeButtons) {
     button.setAttribute("aria-pressed", button.dataset.mode === mode);
@@ -81,11 +80,7 @@ function renderForm() {
   stop.textContent = "Dừng mic";
   save.disabled = false;
   save.textContent = "Lưu";
-  cancel.hidden = !editingId && !hasFieldDraft();
-  cancel.textContent = editingId ? "Hủy sửa" : "Bỏ bản nháp";
-  find("continuous-example").textContent = tree
-    ? "Ví dụ: Cây cao su đường kính 20 cm, số lượng 4, tiếp theo cây xoài đường kính 30 cm, số lượng 2."
-    : "Ví dụ: Nhà mái tôn thông số 10 nhân 8, tiếp theo nhà kho thông số 4 nhân 3.";
+  cancel.disabled = !editingId && !hasDraft();
   renderSpecPreview();
 }
 
@@ -142,12 +137,20 @@ function assetProblem(asset) {
 }
 
 function assetDescription(asset) {
-  if (asset.mode === "house") return asset.spec;
+  if (asset.mode === "house") {
+    const length = assetLength(asset);
+    return [asset.spec, length == null ? "" : "Dài " + displayNumber(length) + " m"]
+      .filter(Boolean).join(" · ");
+  }
   return [
     asset.diameterCm === null ? "" : displayNumber(asset.diameterCm) + " cm",
     asset.heightM === null ? "" : "Cao " + displayNumber(asset.heightM) + " m",
     asset.quantity === null ? "" : displayNumber(asset.quantity) + " cây",
   ].filter(Boolean).join(" · ");
+}
+
+function assetLength(asset) {
+  return Object.hasOwn(asset, "lengthM") ? asset.lengthM : asset.legacyAsset?.measurements?.length_m;
 }
 
 function renderAssets() {
@@ -240,9 +243,14 @@ function deleteAsset(asset) {
   notify("Đã xóa " + asset.name + ".");
 }
 
+function fieldNumber(value, field) {
+  if (field !== "length") return readNumber(value, field);
+  return readNumber(value.replace(/^\s*(?:chiều\s+dài|dài)\s*/iu, "chiều cao "), "height");
+}
+
 function saveAsset(fields = currentFields(), titleOnly = !fields.name?.trim()) {
   const title = formatTitle(fields.title ?? "");
-  const measurements = ["spec", "diameter", "height", "quantity"];
+  const measurements = [...numericFields];
   const hasMeasurements = measurements.some(key => fields[key]?.trim());
   const { asset, error } = title && titleOnly && !hasMeasurements
     ? { asset: { mode, kind: "title", name: title } }
@@ -263,6 +271,15 @@ function saveAsset(fields = currentFields(), titleOnly = !fields.name?.trim()) {
     });
     inputs[invalid]?.focus();
     return false;
+  }
+  if (mode === "house" && asset.kind !== "title") {
+    const length = fields.length?.trim() ? fieldNumber(fields.length, "length") : null;
+    if (length !== null && (!Number.isFinite(length) || length <= 0)) {
+      notify("Hãy nhập chiều dài lớn hơn 0 m hoặc để trống.", "error");
+      inputs.length.focus();
+      return false;
+    }
+    asset.lengthM = length;
   }
   try {
     const assets = [...loadAssets()];
@@ -294,6 +311,7 @@ function saveAsset(fields = currentFields(), titleOnly = !fields.name?.trim()) {
   }
   const edited = Boolean(editingId);
   editingId = null;
+  hideKeypad();
   form.reset();
   persistHousehold();
   renderForm();
@@ -320,6 +338,7 @@ function editAsset(asset) {
   } else if (mode === "house") {
     inputs.name.value = asset.name;
     inputs.spec.value = asset.spec;
+    inputs.length.value = displayNumber(assetLength(asset));
   } else {
     inputs.name.value = asset.name;
     inputs.diameter.value = displayNumber(asset.diameterCm);
@@ -378,7 +397,7 @@ function spokenValue(target, phrases) {
   // A new measurement replaces the old one. Try the complete phrase before
   // trying the latest chunk, so a decimal split across results stays together.
   for (const attempt of [words, phrases.at(-1)]) {
-    const number = readNumber(attempt, field);
+    const number = fieldNumber(attempt, field);
     if (Number.isFinite(number)) return displayNumber(number);
   }
   return "";
@@ -499,10 +518,25 @@ stop.addEventListener("click", () => {
 function renderKeyboardPreference() {
   keyboardDictation.setAttribute("aria-pressed", String(useKeyboardDictation));
   keyboardDictation.textContent = useKeyboardDictation ? "Chuyển sang mic web" : "Dùng mic bàn phím";
-  for (const [field, inputMode] of Object.entries({ spec: "none", diameter: "decimal", height: "decimal", quantity: "numeric" })) {
-    inputs[field].inputMode = useKeyboardDictation ? "text" : inputMode;
-  }
+}
+
+function hideKeypad() {
+  keypadField = null;
   mathKeys.hidden = true;
+}
+
+function showKeypad(key) {
+  if (!numericFields.has(key) || dictationField === key) {
+    hideKeypad();
+    return;
+  }
+  keypadField = key;
+  mathKeys.hidden = false;
+  for (const button of mathKeys.querySelectorAll("[data-key]")) {
+    const character = button.dataset.key;
+    button.disabled = (key !== "spec" && "x/+-()".includes(character))
+      || (key === "quantity" && character === ",");
+  }
 }
 renderKeyboardPreference();
 keyboardDictation.addEventListener("click", () => {
@@ -531,8 +565,8 @@ function normalizeKeyboardValue(field) {
   if (!useKeyboardDictation || !input.value.trim()) return;
   if (field === "spec") {
     input.value = keyboardExpression(input.value);
-  } else if (["diameter", "height", "quantity"].includes(field)) {
-    const number = readNumber(input.value, field);
+  } else if (numericFields.has(field)) {
+    const number = fieldNumber(input.value, field);
     if (Number.isFinite(number)) input.value = displayNumber(number);
   }
 }
@@ -542,9 +576,8 @@ for (const button of modeButtons) {
     if (button.dataset.mode === mode || !allowNewDraft()) return;
     if (recognition) releaseMic();
     mode = button.dataset.mode;
-    clearContinuousPreview();
     renderForm();
-    mathKeys.hidden = true;
+    hideKeypad();
     renderAssets();
     persistHousehold();
     notify();
@@ -558,37 +591,62 @@ form.addEventListener("input", event => {
   renderForm();
 });
 for (const [key, input] of Object.entries(inputs)) {
+  input.addEventListener("focus", () => showKeypad(key));
   input.addEventListener("click", () => {
+    showKeypad(key);
     if (!useKeyboardDictation) listenToField(key);
   });
   input.addEventListener("blur", () => {
+    if (dictationField === key) {
+      dictationField = null;
+      input.inputMode = "none";
+    }
     if (!useKeyboardDictation) return;
     normalizeKeyboardValue(key);
     if (key === "spec") renderSpecPreview();
     persistHousehold();
   });
 }
-inputs.spec.addEventListener("focus", () => { mathKeys.hidden = useKeyboardDictation; });
 form.addEventListener("focusout", event => {
-  if (event.relatedTarget !== inputs.spec && !mathKeys.contains(event.relatedTarget)) mathKeys.hidden = true;
+  if (!mathKeys.contains(event.relatedTarget) && event.relatedTarget !== save && event.relatedTarget !== cancel) {
+    hideKeypad();
+  }
 });
+for (const button of [save, cancel]) {
+  button.addEventListener("pointerdown", event => {
+    if (keypadField) event.preventDefault();
+  });
+}
 mathKeys.addEventListener("pointerdown", event => {
-  if (event.target.closest("[data-key]")) event.preventDefault();
+  if (event.target.closest("button")) event.preventDefault();
+});
+numberDictation.addEventListener("click", () => {
+  const key = keypadField;
+  if (!key) return;
+  releaseMic();
+  useKeyboardDictation = true;
+  renderKeyboardPreference();
+  hideKeypad();
+  const field = inputs[key];
+  field.blur();
+  dictationField = key;
+  field.inputMode = "text";
+  field.focus();
 });
 mathKeys.addEventListener("click", event => {
-  const key = event.target.closest("[data-key]")?.dataset.key;
-  if (!key) return;
-  if (key === "done") {
-    inputs.spec.blur();
-    mathKeys.hidden = true;
-    return;
-  }
-  const field = inputs.spec;
+  const button = event.target.closest("[data-key]");
+  if (!button || button.disabled || !keypadField) return;
+  const key = button.dataset.key;
+  const field = inputs[keypadField];
   let start = field.selectionStart;
-  const end = field.selectionEnd;
+  let end = field.selectionEnd;
+  if (key === "clear") {
+    start = 0;
+    end = field.value.length;
+  }
   if (key === "backspace" && start === end) start = Math.max(0, start - 1);
   field.focus();
-  field.setRangeText(key === "backspace" ? "" : key, start, end, "end");
+  field.setRangeText(key === "backspace" || key === "clear" ? "" : key, start, end, "end");
   field.dispatchEvent(new Event("input", { bubbles: true }));
 });
 form.addEventListener("submit", event => {
@@ -600,10 +658,11 @@ form.addEventListener("submit", event => {
 cancel.addEventListener("click", () => {
   if (recognition) releaseMic();
   editingId = null;
+  hideKeypad();
   form.reset();
   renderForm();
   persistHousehold();
-  notify();
+  notify("Đã xóa nội dung đang nhập.");
 });
 window.addEventListener("storage", event => {
   if (event.key === storageKeys[mode] || event.key === storageKey || event.key === null) renderAssets();
@@ -643,6 +702,7 @@ function download(payload, filename) {
 
 function activateHousehold(record) {
   releaseMic();
+  hideKeypad();
   activeHousehold = record;
   mode = record.draft?.mode === "tree" ? "tree" : "house";
   editingId = record[mode].some(item => item.id === record.draft?.editingId) ? record.draft.editingId : null;
@@ -651,10 +711,6 @@ function activateHousehold(record) {
   for (const [key, value] of Object.entries(record.draft?.fields ?? {})) {
     if (Object.hasOwn(inputs, key) && typeof value === "string") inputs[key].value = value;
   }
-  continuousInput.value = typeof record.draft?.continuous === "string" ? record.draft.continuous : "";
-  find("continuous").open = Boolean(continuousInput.value);
-  clearContinuousPreview();
-  find("legacy-profiles").hidden = true;
   find("household-name").value = record.name;
   persistHousehold();
   renderHousehold();
@@ -737,8 +793,7 @@ find("close-household").addEventListener("click", () => {
   activeHousehold = null;
   localStorage.removeItem(activeKey);
   form.reset();
-  continuousInput.value = "";
-  clearContinuousPreview();
+  hideKeypad();
   find("household-name").value = "";
   renderHousehold();
   notify("Đã đóng hồ sơ. Có thể mở lại file đã lưu.");
@@ -746,8 +801,12 @@ find("close-household").addEventListener("click", () => {
 
 const savedHouseholds = find("saved-households");
 function savedProfiles() {
-  return Object.keys(localStorage).filter(key => key.startsWith(householdPrefix))
-    .map(key => JSON.parse(localStorage.getItem(key)));
+  const profiles = new Map(retainedProfiles);
+  for (const key of Object.keys(localStorage).filter(key => key.startsWith(householdPrefix))) {
+    const record = JSON.parse(localStorage.getItem(key));
+    if (record?.id) profiles.set(record.id, record);
+  }
+  return [...profiles.values()];
 }
 
 function renderSavedHouseholds() {
@@ -771,7 +830,8 @@ savedHouseholds.addEventListener("change", () => {
   if (!savedHouseholds.value) return;
   try {
     if (activeHousehold && !persistHousehold()) throw new Error("Unsaved household");
-    const record = JSON.parse(localStorage.getItem(householdPrefix + savedHouseholds.value));
+    const record = JSON.parse(localStorage.getItem(householdPrefix + savedHouseholds.value))
+      ?? retainedProfiles.get(savedHouseholds.value);
     const [validated] = readBackup({ ...record, format: "gpmb-field-v1" });
     activateHousehold(validated);
     notify();
@@ -794,88 +854,12 @@ function commitRows(rows, draft = householdDraft()) {
   }
 }
 
-function clearContinuousPreview() {
-  continuousRows = [];
-  find("continuous-results").replaceChildren();
-  find("continuous-save").hidden = true;
-}
-
-continuousInput.addEventListener("input", () => {
-  clearContinuousPreview();
-  persistHousehold();
-});
-find("continuous-preview").addEventListener("click", () => {
-  clearContinuousPreview();
-  if (!continuousInput.value.trim()) {
-    notify("Hãy nhập nội dung kê khai để xem trước.", "error");
-    return;
-  }
-  continuousRows = readContinuous(continuousInput.value, mode);
-  const preview = find("continuous-results");
-  for (const row of continuousRows) {
-    const item = document.createElement("li");
-    item.textContent = row.error ? row.raw + " — " + row.error
-      : row.asset.name + " · " + assetDescription(row.asset);
-    preview.append(item);
-  }
-  find("continuous-save").hidden = !continuousRows.length || continuousRows.some(row => row.error);
-  notify(continuousRows.some(row => row.error) ? "Hãy sửa các dòng chưa đủ thông tin rồi xem trước lại." : "");
-});
-find("continuous-save").addEventListener("click", () => {
-  if (!continuousRows.length || continuousRows.some(row => row.error)) return;
-  const rows = continuousRows.map(({ asset, raw }) => ({
-    ...asset, id: newId(), raw_text: raw, review_status: "needs_review",
-  }));
-  if (!commitRows([...loadAssets(), ...rows], { ...householdDraft(), continuous: "" })) return;
-  continuousInput.value = "";
-  clearContinuousPreview();
-  renderAssets();
-  notify("Đã lưu " + rows.length + " dòng.");
-});
-
-const legacyPreview = find("legacy-preview");
-legacyPreview.addEventListener("click", () => {
-  const section = find("legacy-profiles");
-  section.hidden = !section.hidden;
-  const list = find("legacy-list");
-  list.replaceChildren();
-  for (const record of legacyProfiles) {
-    const row = document.createElement("li");
-    const title = document.createElement("p");
-    title.textContent = record.name + (record.legacyHouseholdCode ? " · " + record.legacyHouseholdCode : "")
-      + " · " + record.house.length + " Nhà/Công trình · " + record.tree.length + " Cây";
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "secondary";
-    const key = householdPrefix + record.id;
-    button.disabled = localStorage.getItem(key) !== null;
-    button.textContent = button.disabled ? "Đã có hồ sơ cùng mã" : "Chép hồ sơ này";
-    button.addEventListener("click", () => {
-      try {
-        if (localStorage.getItem(key) !== null) {
-          notify("Đã có hồ sơ cùng mã. Hãy xem lại trước khi chuyển.", "error");
-          return;
-        }
-        localStorage.setItem(key, JSON.stringify(record));
-        button.disabled = true;
-        button.textContent = "Đã chép hồ sơ";
-        renderSavedHouseholds();
-        notify("Đã chép hồ sơ " + record.name + ".");
-      } catch {
-        notify("Chưa chép được hồ sơ. Bạn có thể mở bản cũ để xuất JSON.", "error");
-      }
-    });
-    row.append(title, button);
-    list.append(row);
-  }
-});
-
 renderHousehold();
 readLegacyProfiles().then(records => {
-  legacyProfiles = records;
-  legacyPreview.hidden = !records.length;
+  retainedProfiles = new Map(records.map(record => [record.id, record]));
+  renderSavedHouseholds();
 }).catch(() => {
-  notify("Chưa đọc được hồ sơ VHD Voice cũ. Hãy mở bản cũ để xuất JSON.", "error");
+  notify("Chưa đọc được một số hồ sơ trên thiết bị. Bạn có thể chọn Mở file đã lưu để nhập bản JSON.", "error");
 });
 if ("serviceWorker" in navigator && window.isSecureContext) {
   navigator.serviceWorker.register("./sw.js").catch(() => {});

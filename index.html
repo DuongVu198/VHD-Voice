@@ -7,8 +7,8 @@
   <title>VHD Voice · Nhập liệu hiện trường</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./assets/icon-192.png">
-  <link rel="stylesheet" href="./field.css">
-  <script type="module" src="./unified.mjs"></script>
+  <link rel="stylesheet" href="./field.css?v=2.1">
+  <script type="module" src="./unified.mjs?v=2.1"></script>
 </head>
 <body>
   <header class="topbar">
@@ -30,14 +30,8 @@
         <button type="button" class="primary" id="new-household">Bắt đầu hồ sơ</button>
         <button type="button" class="secondary" id="open-file">Mở file đã lưu</button>
         <button type="button" class="secondary" id="backup-all" hidden>Sao lưu toàn bộ</button>
-        <button type="button" class="secondary" id="legacy-preview" hidden>Xem hồ sơ VHD Voice cũ</button>
         <input id="file-input" type="file" accept=".json,application/json" hidden>
       </div>
-      <div id="legacy-profiles" hidden>
-        <p>Chọn hồ sơ muốn sao chép vào bản hợp nhất.</p>
-        <ul id="legacy-list"></ul>
-      </div>
-      <p><a href="./legacy.html">Mở bản VHD Voice cũ để sao lưu</a></p>
       <div id="session-controls" hidden>
         <p id="active-household"></p>
         <p id="backup-status" role="status"></p>
@@ -54,18 +48,6 @@
           <button type="button" data-mode="house" aria-pressed="true">Nhà/Công trình</button>
           <button type="button" data-mode="tree" aria-pressed="false">Cây</button>
         </div>
-        <details id="continuous">
-          <summary>Đọc liên tục</summary>
-          <p id="continuous-example"></p>
-          <label>Nội dung kê khai
-            <textarea id="continuous-input" rows="3" autocomplete="off"></textarea>
-          </label>
-          <div class="form-actions">
-            <button type="button" class="secondary" id="continuous-preview">Xem trước</button>
-            <button type="button" class="primary" id="continuous-save" hidden>Lưu các dòng đã kiểm tra</button>
-          </div>
-          <ol id="continuous-results"></ol>
-        </details>
         <form id="asset-form" novalidate>
           <div class="voice">
             <div class="voice-actions">
@@ -86,27 +68,32 @@
               <textarea id="spec" rows="2" inputmode="none" autocomplete="off" aria-describedby="spec-preview"></textarea>
             </label>
             <p id="spec-preview" class="status" hidden></p>
-            <div id="math-keys" class="math-keys" role="group" aria-label="Bàn phím phép tính" hidden>
-              <button type="button" data-key="7">7</button><button type="button" data-key="8">8</button><button type="button" data-key="9">9</button><button type="button" data-key="/">÷</button>
-              <button type="button" data-key="4">4</button><button type="button" data-key="5">5</button><button type="button" data-key="6">6</button><button type="button" data-key="x">×</button>
-              <button type="button" data-key="1">1</button><button type="button" data-key="2">2</button><button type="button" data-key="3">3</button><button type="button" data-key="-">−</button>
-              <button type="button" data-key="(">(</button><button type="button" data-key="0">0</button><button type="button" data-key=")">)</button><button type="button" data-key="+">+</button>
-              <button type="button" data-key=",">,</button><button type="button" data-key="backspace" aria-label="Xóa ký tự">⌫</button><button type="button" data-key="done">Xong</button>
-            </div>
+            <label id="length-field">Chiều dài <span class="unit">(m)</span>
+              <input id="length" inputmode="none" autocomplete="off" placeholder="Nếu có">
+            </label>
             <div class="measurements" id="tree-fields" hidden>
               <label>Đường kính <span class="unit">(cm)</span>
-                <input id="diameter" inputmode="decimal" autocomplete="off">
+                <input id="diameter" inputmode="none" autocomplete="off">
               </label>
               <label>Chiều cao <span class="unit">(m)</span>
-                <input id="height" inputmode="decimal" autocomplete="off" placeholder="Nếu có">
+                <input id="height" inputmode="none" autocomplete="off" placeholder="Nếu có">
               </label>
               <label>Số lượng <span class="unit">(cây)</span>
-                <input id="quantity" inputmode="numeric" autocomplete="off">
+                <input id="quantity" inputmode="none" autocomplete="off">
               </label>
+            </div>
+            <div id="math-keys" role="group" aria-label="Bàn phím số" hidden>
+              <div class="math-keys">
+                <button type="button" data-key="7">7</button><button type="button" data-key="8">8</button><button type="button" data-key="9">9</button><button type="button" data-key="backspace" aria-label="Xóa ký tự">xóa</button><button type="button" data-key="clear" aria-label="Xóa nội dung ô">AC</button>
+                <button type="button" data-key="4">4</button><button type="button" data-key="5">5</button><button type="button" data-key="6">6</button><button type="button" data-key="x">x</button><button type="button" data-key="/">/</button>
+                <button type="button" data-key="1">1</button><button type="button" data-key="2">2</button><button type="button" data-key="3">3</button><button type="button" data-key="+">+</button><button type="button" data-key="-">-</button>
+                <button type="button" data-key="0">0</button><button type="button" data-key=",">,</button><button type="button" data-key="(">(</button><button type="button" data-key=")">)</button>
+              </div>
+              <button type="button" class="text-button" id="number-dictation">Dùng mic bàn phím</button>
             </div>
             <div class="form-actions">
               <button type="submit" class="secondary" id="save">Lưu</button>
-              <button type="button" class="text-button" id="cancel" hidden>Bỏ bản nháp</button>
+              <button type="button" class="text-button" id="cancel" disabled>Xóa nhập</button>
             </div>
           </div>
         </form>

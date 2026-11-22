@@ -71,9 +71,18 @@ textarea { resize: vertical; }
 @media (max-width: 22rem) {
   .measurements { grid-template-columns: 1fr 1fr; }
 }
-.math-keys { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .35rem; }
-.math-keys button { border: 1px solid var(--line); border-radius: .45rem; background: #edf6f0; color: var(--ink); }
-.math-keys [data-key="done"] { grid-column: span 2; }
+.math-keys {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 1px;
+  padding: 1px;
+  background: var(--line);
+  border-radius: .55rem;
+  overflow: hidden;
+}
+.math-keys button { border: 0; background: #fff; color: var(--ink); font-size: 1.2rem; font-weight: 700; }
+.math-keys button[data-key="backspace"], .math-keys button[data-key="clear"] { font-size: .95rem; }
+.math-keys button:active { background: #d9ede3; }
 .asset-heading .asset-name { color: var(--brand); }
 .asset-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; }
 .household { margin-bottom: 1rem; }
@@ -81,5 +90,3 @@ textarea { resize: vertical; }
 .household .primary { flex: 0 1 auto; }
 #active-household { font-weight: 700; }
 #household-picker { margin-bottom: .85rem; }
-#continuous { margin-top: .85rem; }
-#continuous summary { min-height: 44px; padding-block: .65rem; cursor: pointer; color: var(--brand); font-weight: 650; }
