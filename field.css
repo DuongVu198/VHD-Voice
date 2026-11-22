@@ -98,3 +98,6 @@ textarea { resize: vertical; }
 #trash { margin-top: .85rem; }
 #trash summary { cursor: pointer; font-weight: 650; }
 #trash-list li + li { margin-top: .5rem; }
+#device-keyboard { width: min(31rem, calc(100% - 2rem)); border: 1px solid var(--line); border-radius: 1rem; padding: 1.15rem; color: var(--ink); }
+#device-keyboard::backdrop { background: #15382f66; }
+#device-keyboard .form-actions { margin-top: .8rem; }

@@ -20,6 +20,8 @@ const trashPrefix = "gpmb-trash-v1:";
 const activeKey = "gpmb-active-household-v3";
 const mathKeys = find("math-keys");
 const numberDictation = find("number-dictation");
+const deviceKeyboard = find("device-keyboard");
+const deviceInput = find("device-keyboard-input");
 const numericFields = new Set(["spec", "diameter", "height", "quantity"]);
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const fieldLabels = {
@@ -44,7 +46,7 @@ let activeHousehold = null;
 let micTimer = null;
 let useKeyboardDictation = true;
 let keypadField = null;
-let dictationField = null;
+let deviceField = null;
 let specTaps = 0;
 let lastSpecTap = -Infinity;
 let retainedProfiles = new Map();
@@ -71,9 +73,7 @@ function renderForm() {
   const tree = mode === "tree";
   find("name-label").textContent = tree ? "Tên cây" : "Tên tài sản";
   find("guide").textContent = useKeyboardDictation
-    ? tree
-      ? "Chạm ô để nhập. Với ô số, chọn Dùng mic bàn phím nếu muốn đọc."
-      : "Chạm ô để nhập. Chạm nhanh 3 lần vào Thông số kỹ thuật để mở bàn phím iPhone."
+    ? "Chạm ô để nhập. Với ô số, chọn Bàn phím iPhone để gõ hoặc đọc."
     : "Chạm ô cần nhập. Khi thấy Đang nghe, hãy đọc rồi chạm ô khác hoặc bấm Lưu.";
   find("spec-field").hidden = tree;
   find("tree-fields").hidden = !tree;
@@ -499,7 +499,7 @@ stop.addEventListener("click", () => {
 
 function renderKeyboardPreference() {
   keyboardDictation.setAttribute("aria-pressed", String(useKeyboardDictation));
-  keyboardDictation.textContent = useKeyboardDictation ? "Chuyển sang mic web" : "Dùng mic bàn phím";
+  keyboardDictation.textContent = useKeyboardDictation ? "Chuyển sang mic web" : "Bàn phím iPhone";
 }
 
 function hideKeypad() {
@@ -508,7 +508,7 @@ function hideKeypad() {
 }
 
 function showKeypad(key) {
-  if (!numericFields.has(key) || dictationField === key) {
+  if (!numericFields.has(key) || deviceKeyboard.open) {
     hideKeypad();
     return;
   }
@@ -575,7 +575,7 @@ form.addEventListener("input", event => {
 for (const [key, input] of Object.entries(inputs)) {
   input.addEventListener("focus", () => showKeypad(key));
   input.addEventListener("click", () => {
-    if (key === "spec" && dictationField !== key) {
+    if (key === "spec") {
       const now = performance.now();
       specTaps = now - lastSpecTap <= 700 ? specTaps + 1 : 1;
       lastSpecTap = now;
@@ -590,10 +590,6 @@ for (const [key, input] of Object.entries(inputs)) {
   });
   input.addEventListener("blur", () => {
     if (key === "spec") specTaps = 0;
-    if (dictationField === key) {
-      dictationField = null;
-      input.inputMode = "none";
-    }
     if (!useKeyboardDictation) return;
     normalizeKeyboardValue(key);
     if (key === "spec") renderSpecPreview();
@@ -614,16 +610,28 @@ mathKeys.addEventListener("pointerdown", event => {
   if (event.target.closest("button")) event.preventDefault();
 });
 function openDeviceKeyboard(key) {
+  if (deviceKeyboard.open) return;
   releaseMic();
   useKeyboardDictation = true;
   renderKeyboardPreference();
+  deviceField = key;
+  deviceInput.value = inputs[key].value;
+  find("device-keyboard-title").textContent = fieldLabel(key);
+  deviceKeyboard.returnValue = "cancel";
   hideKeypad();
-  const field = inputs[key];
-  field.blur();
-  dictationField = key;
-  field.inputMode = "text";
-  field.focus();
+  deviceKeyboard.showModal();
+  deviceInput.focus();
+  deviceInput.setSelectionRange(deviceInput.value.length, deviceInput.value.length);
 }
+deviceKeyboard.addEventListener("close", () => {
+  const key = deviceField;
+  deviceField = null;
+  if (!key || deviceKeyboard.returnValue !== "apply") return;
+  inputs[key].value = deviceInput.value;
+  normalizeKeyboardValue(key);
+  persistHousehold();
+  renderForm();
+});
 numberDictation.addEventListener("click", () => {
   if (keypadField) openDeviceKeyboard(keypadField);
 });

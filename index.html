@@ -7,8 +7,8 @@
   <title>VHD Voice · Nhập liệu hiện trường</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./assets/icon-192.png">
-  <link rel="stylesheet" href="./field.css?v=2.2">
-  <script type="module" src="./unified.mjs?v=2.2"></script>
+  <link rel="stylesheet" href="./field.css?v=2.3">
+  <script type="module" src="./unified.mjs?v=2.3"></script>
 </head>
 <body>
   <header class="topbar">
@@ -57,7 +57,7 @@
           <div class="voice">
             <div class="voice-actions">
               <button type="button" class="secondary" id="stop" hidden>Dừng mic</button>
-              <button type="button" class="secondary" id="keyboard-dictation" aria-pressed="false">Dùng mic bàn phím</button>
+              <button type="button" class="secondary" id="keyboard-dictation" aria-pressed="false">Bàn phím iPhone</button>
             </div>
             <p id="guide" class="guide"></p>
 
@@ -91,7 +91,7 @@
                 <button type="button" data-key="1">1</button><button type="button" data-key="2">2</button><button type="button" data-key="3">3</button><button type="button" data-key="+">+</button><button type="button" data-key="-">-</button>
                 <button type="button" data-key="0">0</button><button type="button" data-key=",">,</button><button type="button" data-key="(">(</button><button type="button" data-key=")">)</button>
               </div>
-              <button type="button" class="text-button" id="number-dictation">Dùng mic bàn phím</button>
+              <button type="button" class="text-button" id="number-dictation">Bàn phím iPhone</button>
             </div>
             <div class="form-actions">
               <button type="submit" class="secondary" id="save">Lưu</button>
@@ -117,6 +117,16 @@
       <div class="form-actions">
         <button class="secondary" value="no" autofocus>Không</button>
         <button class="primary" value="yes">Có</button>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="device-keyboard" aria-labelledby="device-keyboard-title">
+    <form method="dialog">
+      <label id="device-keyboard-title" for="device-keyboard-input"></label>
+      <textarea id="device-keyboard-input" rows="3" inputmode="text" autocomplete="off" autofocus></textarea>
+      <div class="form-actions">
+        <button class="secondary" value="cancel">Hủy</button>
+        <button class="primary" value="apply">Dùng nội dung</button>
       </div>
     </form>
   </dialog>
