@@ -1,0 +1,82 @@
+:root {
+  color-scheme: light;
+  font-family: "Inter", system-ui, sans-serif;
+  color: #162d25;
+  background: #f1f5f2;
+  --brand: #17674f;
+  --ink: #15382f;
+  --line: #d7e3dc;
+  --muted: #49645a;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; }
+button, input, textarea { font: inherit; }
+button { min-height: 44px; cursor: pointer; }
+button:disabled { cursor: default; opacity: .58; }
+button:focus-visible, input:focus-visible, textarea:focus-visible {
+  outline: 3px solid #218669;
+  outline-offset: 3px;
+}
+
+.shell { max-width: 64rem; padding-inline: 1rem; margin-inline: auto; }
+.topbar { background: var(--ink); color: #fff; padding-block: 1rem; font-weight: 650; }
+h1 { margin: 1.4rem 0 1rem; font-size: clamp(1.65rem, 5vw, 2.45rem); letter-spacing: -.035em; }
+h2 { margin: 0; font-size: 1.15rem; }
+.columns { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 1rem; padding-bottom: 2rem; align-items: start; }
+.panel { background: white; border: 1px solid var(--line); border-radius: 1rem; padding: clamp(.9rem, 3vw, 1.4rem); }
+.choices { display: grid; grid-template-columns: 1fr 1fr; gap: .25rem; padding: .25rem; background: #ebf1ed; border-radius: .7rem; }
+.choices button { border: 1px solid transparent; border-radius: .5rem; background: none; color: var(--muted); font-weight: 650; }
+.choices [aria-pressed="true"] { background: white; border-color: var(--line); color: var(--ink); }
+.voice { margin-block: 1rem; padding: .85rem; background: #edf6f0; border-radius: .75rem; }
+.voice-actions { display: flex; align-items: stretch; gap: .55rem; }
+.primary, .secondary, .text-button { border-radius: .55rem; padding: .55rem .85rem; font-weight: 650; }
+.primary { flex: 1; min-height: 52px; background: var(--brand); border: 1px solid var(--brand); color: #fff; }
+.secondary { background: white; border: 1px solid #afc6b9; color: var(--ink); }
+.text-button { border: 1px solid transparent; color: var(--brand); background: transparent; }
+.guide, .status { margin: .65rem 0 0; font-size: .9rem; line-height: 1.5; color: var(--muted); }
+.status { color: var(--ink); font-weight: 650; }
+.status[data-tone="error"] { color: #8c321f; }
+.fields, .measurements { display: grid; gap: .85rem; }
+.measurements { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .55rem; }
+label { display: block; font-weight: 600; font-size: .9rem; }
+.unit, .storage-note { font-weight: 400; color: var(--muted); }
+input, textarea {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-top: .35rem;
+  padding: .55rem .65rem;
+  border: 1px solid #b8cbc0;
+  border-radius: .5rem;
+  color: inherit;
+  background: #fff;
+  font-size: 1rem;
+  font-weight: 400;
+}
+input:read-only, textarea:read-only { background: #f4f8f5; }
+textarea { resize: vertical; }
+.form-actions, .saved-heading { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+.count { color: var(--ink); background: #e7f2eb; padding: .12rem .55rem; border-radius: 1rem; font-size: .9rem; font-weight: 650; }
+.empty { color: var(--muted); margin-block: .9rem; }
+#assets { margin: .8rem 0 0; padding: 0; list-style: none; }
+.asset { display: flex; justify-content: space-between; gap: .5rem; align-items: flex-start; padding: .65rem 0; border-top: 1px solid var(--line); }
+.asset-name { margin: .22rem 0; font-weight: 680; overflow-wrap: anywhere; }
+.asset-detail { margin: .25rem 0; color: var(--muted); font-size: .9rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+.storage-note { margin: .85rem 0 0; font-size: .875rem; }
+@media (max-width: 43rem) {
+  .columns { grid-template-columns: 1fr; }
+}
+@media (max-width: 22rem) {
+  .measurements { grid-template-columns: 1fr 1fr; }
+}
+.math-keys { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .35rem; }
+.math-keys button { border: 1px solid var(--line); border-radius: .45rem; background: #edf6f0; color: var(--ink); }
+.math-keys [data-key="done"] { grid-column: span 2; }
+.asset-heading .asset-name { color: var(--brand); }
+.asset-actions { display: flex; }
+.household { margin-bottom: 1rem; }
+.household .form-actions { margin-top: .8rem; }
+.household .primary { flex: 0 1 auto; }
+#active-household { font-weight: 700; }
