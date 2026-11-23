@@ -1,13 +1,21 @@
-VHD VOICE v1.0 - BẢN APP iPHONE (PWA)
+VHD VOICE - NHẬP LIỆU HIỆN TRƯỜNG (PWA)
 =================================
 
 TÍNH NĂNG
-- Nhập từng tài sản hoặc nhập liên tục (ngăn cách bằng "tiếp theo").
-- Dùng tính năng đọc chính tả (micro trên bàn phím iPhone) để nhập tiếng Việt.
-- Chọn/tạo/sửa hộ, kiểm tra và xác nhận tài sản.
-- Lưu tại máy bằng IndexedDB (có dự phòng localStorage), sử dụng giao diện offline sau lần tải đầu tiên.
-- Xuất JSON cho từng hộ hoặc toàn bộ dự án; nhập JSON để khôi phục bản sao lưu.
+- Nhập nhà/công trình và cây theo từng hồ sơ hộ.
+- Dùng bàn phím, đọc chính tả trên iPhone hoặc nhận giọng nói khi trình duyệt hỗ trợ.
+- Chọn/tạo hồ sơ, sửa tài sản, chuyển hồ sơ vào thùng rác và khôi phục.
+- Tự lưu hồ sơ tại máy bằng localStorage, sử dụng giao diện offline sau lần tải đầu tiên.
+- Lưu JSON cho từng hộ hoặc sao lưu toàn bộ hồ sơ; nhập JSON để khôi phục.
+- Tự đọc hồ sơ bản cũ từ IndexedDB/localStorage và hỗ trợ nhập JSON bản cũ.
 - KHÔNG tự động tính toán đơn giá/phương án Excel; phần này dành cho module Windows về sau.
+
+CẤU TRÚC HIỆN TẠI
+- index.html: trang ứng dụng chính.
+- unified.mjs, field.css: logic và giao diện hiện tại.
+- commands.mjs: xử lý số, phép tính và kiểm tra tài sản.
+- unified-data.mjs, field-import.mjs: đọc bản sao lưu và chuyển đổi dữ liệu cũ.
+- sw.js, manifest.webmanifest: bộ nhớ đệm offline và cấu hình PWA.
 
 CÁCH ĐƯA LÊN IPHONE BẰNG GITHUB PAGES
 1. Tạo tài khoản GitHub nếu chưa có.
