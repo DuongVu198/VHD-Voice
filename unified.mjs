@@ -1,5 +1,6 @@
 import { formatHouseSpec, formatTitle, normalizeMathSymbols, readNumber, validateAsset } from "./commands.mjs?v=2.2";
 import { readBackup, readLegacyProfiles } from "./unified-data.mjs";
+import { openHouseholdReport } from "./report.mjs";
 
 const find = id => document.getElementById(id);
 const form = find("asset-form");
@@ -196,21 +197,9 @@ function renderAssets() {
       const review = document.createElement("p");
       review.className = "asset-detail";
       const problem = assetProblem(asset);
-      const confirmed = (asset.review_status ?? asset.legacyAsset?.review_status) === "confirmed";
-      review.textContent = problem ? "Cần bổ sung. " + problem : confirmed ? "Đã xác nhận" : "Cần kiểm tra";
-      text.append(review);
-      if (!problem && !confirmed) {
-        const confirm = document.createElement("button");
-        confirm.type = "button";
-        confirm.className = "text-button";
-        confirm.textContent = "Xác nhận";
-        confirm.addEventListener("click", () => {
-          if (!commitRows(loadAssets().map(item => item.id === asset.id
-            ? { ...item, review_status: "confirmed" } : item))) return;
-          renderAssets();
-          notify("Đã xác nhận " + asset.name + ".");
-        });
-        actions.append(confirm);
+      if (problem) {
+        review.textContent = "Cần bổ sung. " + problem;
+        text.append(review);
       }
     }
     actions.append(edit, remove);
@@ -272,7 +261,7 @@ function saveAsset(fields = currentFields(), titleOnly = !fields.name?.trim()) {
       return false;
     }
     const record = { ...assets[index], ...asset, id: editingId ?? newId() };
-    if (record.kind !== "title") record.review_status = "needs_review";
+    if (record.kind !== "title") record.review_status = "confirmed";
     if (index < 0) {
       if (title && asset.kind !== "title") assets.push({ mode, kind: "title", name: title, id: newId() });
       assets.push(record);
@@ -749,6 +738,12 @@ find("new-household").addEventListener("click", () => {
 });
 
 find("update-file").addEventListener("click", exportFile);
+find("export-pdf").addEventListener("click", () => {
+  if (!activeHousehold) return;
+  releaseMic();
+  persistHousehold();
+  openHouseholdReport(activeHousehold);
+});
 find("backup-all").addEventListener("click", () => {
   try {
     const households = savedProfiles();
