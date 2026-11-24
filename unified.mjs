@@ -14,6 +14,7 @@ const status = find("status");
 const modeButtons = [...document.querySelectorAll("[data-mode]")];
 const inputs = Object.fromEntries(["title", "name", "spec", "diameter", "height", "quantity"]
   .map(key => [key, find(key)]));
+const nameSuggestions = find("name-suggestions");
 const storageKey = "gpmb-field-assets-v1";
 const storageKeys = { house: "gpmb-field-house-v2", tree: "gpmb-field-tree-v2" };
 const householdPrefix = "gpmb-household-v3:";
@@ -96,6 +97,85 @@ function loadAssets() {
   if (!Array.isArray(saved)) throw new Error("Invalid asset list");
   return current === null ? saved.filter(item => item.mode === mode) : saved;
 }
+
+const nameKey = value => value.trim().normalize("NFC").toLocaleLowerCase("vi").replace(/\s+/gu, " ");
+const searchableName = key => key.normalize("NFD").replace(/\p{M}/gu, "").replaceAll("đ", "d");
+
+function hideNameSuggestions() {
+  inputs.name.removeAttribute("aria-activedescendant");
+  inputs.name.setAttribute("aria-expanded", "false");
+  nameSuggestions.hidden = true;
+  nameSuggestions.replaceChildren();
+}
+
+function renderNameSuggestions() {
+  hideNameSuggestions();
+  const query = searchableName(nameKey(inputs.name.value));
+  if (!query || !activeHousehold || document.activeElement !== inputs.name) return;
+
+  const seen = new Set();
+  for (const asset of activeHousehold[mode]) {
+    if (asset.kind === "title" || typeof asset.name !== "string") continue;
+    const key = nameKey(asset.name);
+    if (seen.has(key) || !searchableName(key).includes(query)) continue;
+    seen.add(key);
+
+    const option = document.createElement("li");
+    option.id = "name-suggestion-" + seen.size;
+    option.setAttribute("role", "option");
+    option.setAttribute("aria-selected", "false");
+    option.textContent = asset.name.trim();
+    nameSuggestions.append(option);
+  }
+  if (!seen.size) return;
+  nameSuggestions.hidden = false;
+  inputs.name.setAttribute("aria-expanded", "true");
+}
+
+function chooseNameSuggestion(option) {
+  inputs.name.value = option.textContent;
+  hideNameSuggestions();
+  const nextField = mode === "house" ? "spec" : "diameter";
+  inputs[nextField].focus();
+  if (recognition) listenToField(nextField);
+  persistHousehold();
+  renderForm();
+}
+
+inputs.name.addEventListener("focus", renderNameSuggestions);
+inputs.name.addEventListener("blur", hideNameSuggestions);
+inputs.name.addEventListener("keydown", event => {
+  if (event.isComposing) return;
+  const arrow = event.key === "ArrowDown" || event.key === "ArrowUp";
+  if (arrow && nameSuggestions.hidden) renderNameSuggestions();
+  if (nameSuggestions.hidden) return;
+
+  const selected = nameSuggestions.querySelector('[aria-selected="true"]');
+  if (arrow) {
+    event.preventDefault();
+    const option = event.key === "ArrowDown"
+      ? selected?.nextElementSibling ?? nameSuggestions.firstElementChild
+      : selected?.previousElementSibling ?? nameSuggestions.lastElementChild;
+    selected?.setAttribute("aria-selected", "false");
+    option.setAttribute("aria-selected", "true");
+    inputs.name.setAttribute("aria-activedescendant", option.id);
+    option.scrollIntoView({ block: "nearest" });
+  } else if (event.key === "Enter" && selected) {
+    event.preventDefault();
+    chooseNameSuggestion(selected);
+  } else if (event.key === "Escape") {
+    event.preventDefault();
+    hideNameSuggestions();
+  }
+});
+nameSuggestions.addEventListener("pointerdown", event => {
+  if (event.target.closest('[role="option"]')) event.preventDefault();
+});
+nameSuggestions.addEventListener("click", event => {
+  const option = event.target.closest('[role="option"]');
+  if (option) chooseNameSuggestion(option);
+});
+form.addEventListener("reset", hideNameSuggestions);
 
 function persistHousehold() {
   if (!activeHousehold) return false;
@@ -412,6 +492,7 @@ function receiveSpeech(event) {
   const input = inputs[target.field];
   if (input.value !== value) {
     input.value = value;
+    if (target.field === "name") renderNameSuggestions();
     renderForm();
     persistHousehold();
   }
@@ -547,6 +628,7 @@ for (const button of modeButtons) {
     if (button.dataset.mode === mode || !allowNewDraft()) return;
     if (recognition) releaseMic();
     mode = button.dataset.mode;
+    hideNameSuggestions();
     renderForm();
     hideKeypad();
     renderAssets();
@@ -558,6 +640,7 @@ form.addEventListener("input", event => {
   if (capture && event.target === inputs[capture.target.field]) {
     setSpeechTarget(capture.target.field);
   }
+  if (event.target === inputs.name) renderNameSuggestions();
   persistHousehold();
   renderForm();
 });

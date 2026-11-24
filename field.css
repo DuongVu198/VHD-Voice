@@ -57,6 +57,31 @@ input, select, textarea {
 }
 input:read-only, textarea:read-only { background: #f4f8f5; }
 textarea { resize: vertical; }
+.name-field { position: relative; min-width: 0; }
+#name-suggestions {
+  position: absolute;
+  z-index: 1;
+  inset: calc(100% + .25rem) 0 auto;
+  max-height: 11rem;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid #b8cbc0;
+  border-radius: .5rem;
+  background: #fff;
+  box-shadow: 0 .3rem .8rem #15382f23;
+}
+#name-suggestions li {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: .5rem .65rem;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+#name-suggestions li + li { border-top: 1px solid var(--line); }
+#name-suggestions li:hover, #name-suggestions [aria-selected="true"] { background: #e7f2eb; }
 .form-actions, .saved-heading { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
 .count { color: var(--ink); background: #e7f2eb; padding: .12rem .55rem; border-radius: 1rem; font-size: .9rem; font-weight: 650; }
 .empty { color: var(--muted); margin-block: .9rem; }
@@ -80,8 +105,16 @@ textarea { resize: vertical; }
   border-radius: .55rem;
   overflow: hidden;
 }
-.math-keys button { border: 0; background: #fff; color: var(--ink); font-size: 1.2rem; font-weight: 700; }
-.math-keys button[data-key="backspace"], .math-keys button[data-key="clear"] { font-size: .95rem; }
+.math-keys button {
+  min-height: 4rem;
+  padding-inline: .2rem;
+  border: 0;
+  background: #fff;
+  color: var(--ink);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+.math-keys button[data-key="backspace"], .math-keys button[data-key="clear"] { font-size: 1.125rem; }
 .math-keys button:active { background: #d9ede3; }
 .asset-heading .asset-name { color: var(--brand); }
 .asset-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; }

@@ -7,9 +7,9 @@
   <title>VHD Voice · Nhập liệu hiện trường</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/icon-180.png">
-  <link rel="stylesheet" href="./field.css?v=2.4">
+  <link rel="stylesheet" href="./field.css?v=2.5">
   <link rel="stylesheet" href="./report.css">
-  <script type="module" src="./unified.mjs?v=2.4"></script>
+  <script type="module" src="./unified.mjs?v=2.5"></script>
 </head>
 <body>
   <header class="topbar">
@@ -68,9 +68,12 @@
             <label>Tiêu đề
               <input id="title" autocomplete="off" placeholder="Nếu có">
             </label>
-            <label><span id="name-label">Tên tài sản</span>
-              <input id="name" autocomplete="off">
-            </label>
+            <div class="name-field">
+              <label for="name" id="name-label">Tên tài sản</label>
+              <input id="name" autocomplete="off" role="combobox" aria-autocomplete="list"
+                aria-controls="name-suggestions" aria-expanded="false">
+              <ul id="name-suggestions" role="listbox" aria-labelledby="name-label" hidden></ul>
+            </div>
             <label id="spec-field">Thông số kỹ thuật
               <textarea id="spec" rows="2" inputmode="none" autocomplete="off" aria-describedby="spec-preview"></textarea>
             </label>
