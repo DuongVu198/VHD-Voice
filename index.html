@@ -3,29 +3,43 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#15382f">
+  <meta name="theme-color" content="#fffefa">
   <title>VHD Voice · Nhập liệu hiện trường</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/icon-180.png">
-  <link rel="stylesheet" href="./field.css?v=2.5">
+  <link rel="stylesheet" href="./field.css?v=2.6">
   <link rel="stylesheet" href="./report.css">
-  <script type="module" src="./unified.mjs?v=2.5"></script>
+  <script type="module" src="./unified.mjs?v=2.6"></script>
 </head>
 <body>
   <header class="topbar">
-    <div class="shell">VHD Voice · Kiểm kê GPMB</div>
+    <div class="shell brand-bar">
+      <div class="brand-mark"><img src="./assets/icon-192.png" width="36" height="36" alt=""> VHD Voice</div>
+      <span class="brand-context">Kiểm kê GPMB</span>
+    </div>
   </header>
   <main class="shell">
-    <h1>Nhập liệu hiện trường</h1>
+    <h1>Sổ hiện trường</h1>
     <section class="panel household" aria-label="Hồ sơ hộ">
+      <div id="session-controls" hidden>
+        <p class="household-label">Hồ sơ đang mở</p>
+        <h2 id="active-household"></h2>
+        <p id="backup-status" role="status"></p>
+        <div class="form-actions">
+          <button type="button" class="secondary" id="update-file">Cập nhật file</button>
+          <button type="button" class="secondary" id="export-pdf">Xuất PDF</button>
+          <button type="button" class="text-button" id="close-household">Đóng hồ sơ</button>
+          <button type="button" class="text-button danger-text" id="trash-household">Xóa hồ sơ</button>
+        </div>
+      </div>
       <div id="household-picker">
         <label id="saved-households-label">Chọn hồ sơ hộ<select id="saved-households"></select></label>
         <p id="no-households" hidden>Chưa có hồ sơ trong danh sách.</p>
       </div>
       <div id="new-household-fields">
-      <label>Tên hộ
-        <input id="household-name" autocomplete="name" placeholder="Nhập tên hộ để bắt đầu">
-      </label>
+        <label>Tên hộ
+          <input id="household-name" autocomplete="name" placeholder="Nhập tên hộ để bắt đầu">
+        </label>
       </div>
       <div class="form-actions">
         <button type="button" class="primary" id="new-household">Bắt đầu hồ sơ</button>
@@ -37,24 +51,20 @@
         <summary>Hồ sơ đã xóa</summary>
         <ul id="trash-list"></ul>
       </details>
-      <div id="session-controls" hidden>
-        <p id="active-household"></p>
-        <p id="backup-status" role="status"></p>
-        <div class="form-actions">
-          <button type="button" class="secondary" id="update-file">Cập nhật file</button>
-          <button type="button" class="secondary" id="export-pdf">Xuất PDF</button>
-          <button type="button" class="text-button" id="close-household">Đóng hồ sơ</button>
-          <button type="button" class="text-button danger-text" id="trash-household">Xóa hồ sơ</button>
-        </div>
-      </div>
     </section>
     <p id="status" class="status" role="status" hidden></p>
-    <div class="columns" id="workspace" hidden>
-      <section class="panel" aria-label="Nhập tài sản">
-        <div class="choices" role="group" aria-label="Loại tài sản">
-          <button type="button" data-mode="house" aria-pressed="true">Nhà/Công trình</button>
-          <button type="button" data-mode="tree" aria-pressed="false">Cây</button>
-        </div>
+    <div class="columns" id="workspace" data-view="entry" hidden>
+      <nav class="workspace-nav" aria-label="Sổ hiện trường">
+        <button type="button" data-workspace-view="entry" aria-controls="entry-panel" aria-pressed="true">Nhập tài sản</button>
+        <button type="button" data-workspace-view="saved" aria-controls="saved-panel" aria-pressed="false">
+          Đã lưu <span class="count" id="workspace-count">0</span>
+        </button>
+      </nav>
+      <div class="choices" role="group" aria-label="Loại tài sản">
+        <button type="button" data-mode="house" aria-pressed="true">Nhà/Công trình</button>
+        <button type="button" data-mode="tree" aria-pressed="false">Cây</button>
+      </div>
+      <section class="panel" id="entry-panel" aria-label="Nhập tài sản">
         <form id="asset-form" novalidate>
           <div class="voice">
             <div class="voice-actions">
@@ -65,8 +75,8 @@
 
           </div>
           <div class="fields">
-            <label>Tiêu đề
-              <input id="title" autocomplete="off" placeholder="Nếu có">
+            <label>Tiêu đề <span class="unit">(nếu có)</span>
+              <input id="title" autocomplete="off" placeholder="Ví dụ: Công trình chính">
             </label>
             <div class="name-field">
               <label for="name" id="name-label">Tên tài sản</label>
@@ -99,15 +109,15 @@
               <button type="button" class="text-button" id="number-dictation">Bàn phím iPhone</button>
             </div>
             <div class="form-actions">
-              <button type="submit" class="secondary" id="save">Lưu</button>
               <button type="button" class="text-button" id="cancel" disabled>Xóa nhập</button>
+              <button type="submit" class="primary" id="save">Lưu tài sản</button>
             </div>
           </div>
         </form>
       </section>
-      <section class="panel saved" aria-labelledby="saved-title">
+      <section class="panel saved" id="saved-panel" aria-labelledby="saved-title">
         <div class="saved-heading">
-          <h2 id="saved-title">Tài sản đã lưu</h2>
+          <h2 id="saved-title" tabindex="-1">Tài sản đã lưu</h2>
           <span id="count" class="count" aria-label="Số tài sản đã lưu">0</span>
         </div>
         <p id="empty" class="empty">Chưa có tài sản nào.</p>

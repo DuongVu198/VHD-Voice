@@ -10,6 +10,8 @@ const specPreview = find("spec-preview");
 const cancel = find("cancel");
 const save = find("save");
 const list = find("assets");
+const workspace = find("workspace");
+const viewButtons = [...workspace.querySelectorAll("[data-workspace-view]")];
 const status = find("status");
 const modeButtons = [...document.querySelectorAll("[data-mode]")];
 const inputs = Object.fromEntries(["title", "name", "spec", "diameter", "height", "quantity"]
@@ -85,7 +87,8 @@ function renderForm() {
   stop.hidden = !recognition;
   stop.textContent = "Dừng mic";
   save.disabled = false;
-  save.textContent = "Lưu";
+  save.textContent = editingId ? "Lưu thay đổi" : "Lưu tài sản";
+  cancel.textContent = editingId ? "Hủy sửa" : "Xóa nhập";
   cancel.disabled = !editingId && !hasDraft();
   renderSpecPreview();
 }
@@ -194,13 +197,28 @@ function persistHousehold() {
   }
 }
 
+function setWorkspaceView(view) {
+  workspace.dataset.view = view;
+  for (const button of viewButtons) {
+    button.setAttribute("aria-pressed", String(button.dataset.workspaceView === view));
+  }
+}
+
+for (const button of viewButtons) {
+  button.addEventListener("click", () => {
+    const view = button.dataset.workspaceView;
+    if (view === "saved" && recognition) releaseMic();
+    setWorkspaceView(view);
+  });
+}
+
 function renderHousehold() {
-  find("workspace").hidden = !activeHousehold;
+  workspace.hidden = !activeHousehold;
   find("session-controls").hidden = !activeHousehold;
   find("new-household-fields").hidden = Boolean(activeHousehold);
   find("household-picker").hidden = Boolean(activeHousehold);
   find("new-household").hidden = Boolean(activeHousehold);
-  if (activeHousehold) find("active-household").textContent = "Đang làm việc với hộ " + activeHousehold.name;
+  if (activeHousehold) find("active-household").textContent = "Hộ " + activeHousehold.name;
   renderForm();
   renderAssets();
   renderSavedHouseholds();
@@ -234,31 +252,44 @@ function assetDescription(asset) {
 function renderAssets() {
   const isTree = mode === "tree";
   find("saved-title").textContent = isTree ? "Cây đã lưu" : "Tài sản đã lưu";
-  find("count").setAttribute("aria-label", isTree ? "Số dòng cây đã lưu" : "Số tài sản đã lưu");
+  const count = find("count");
+  const workspaceCount = find("workspace-count");
+  count.setAttribute("aria-label", isTree ? "Số dòng cây đã lưu" : "Số tài sản đã lưu");
   list.replaceChildren();
   let assets;
   try {
     assets = loadAssets();
   } catch {
+    count.textContent = workspaceCount.textContent = "—";
     find("empty").hidden = false;
     find("empty").textContent = "Không đọc được dữ liệu đã lưu trong trình duyệt.";
     return;
   }
-  find("count").textContent = assets.filter(asset => asset.kind !== "title").length;
+  count.textContent = workspaceCount.textContent = assets.filter(asset => asset.kind !== "title").length;
   find("empty").hidden = Boolean(assets.length);
   find("empty").textContent = isTree ? "Chưa có cây nào." : "Chưa có tài sản nào.";
   for (const asset of assets) {
+    const isTitle = asset.kind === "title";
     const row = document.createElement("li");
-    row.className = asset.kind === "title" ? "asset asset-heading" : "asset";
+    row.className = isTitle ? "asset asset-heading" : "asset";
     const text = document.createElement("div");
-    const name = document.createElement("p");
+    text.className = "asset-content";
+    const name = document.createElement(isTitle ? "h3" : "p");
     name.className = "asset-name";
     name.textContent = asset.name;
-    const detail = document.createElement("p");
-    detail.className = "asset-detail";
-    detail.textContent = assetDescription(asset);
+    if (isTitle) {
+      const label = document.createElement("span");
+      label.className = "asset-title-label";
+      label.textContent = "Tiêu đề";
+      text.append(label);
+    }
     text.append(name);
-    if (asset.kind !== "title") text.append(detail);
+    if (!isTitle) {
+      const detail = document.createElement("p");
+      detail.className = "asset-detail";
+      detail.textContent = assetDescription(asset);
+      text.append(detail);
+    }
     const edit = document.createElement("button");
     edit.type = "button";
     edit.className = "text-button";
@@ -267,13 +298,13 @@ function renderAssets() {
     edit.addEventListener("click", () => editAsset(asset));
     const remove = document.createElement("button");
     remove.type = "button";
-    remove.className = "text-button";
+    remove.className = "text-button danger-text";
     remove.textContent = "Xóa";
     remove.setAttribute("aria-label", "Xóa " + asset.name);
     remove.addEventListener("click", () => deleteAsset(asset));
     const actions = document.createElement("div");
     actions.className = "asset-actions";
-    if (asset.kind !== "title") {
+    if (!isTitle) {
       const review = document.createElement("p");
       review.className = "asset-detail";
       const problem = assetProblem(asset);
@@ -369,6 +400,10 @@ function saveAsset(fields = currentFields(), titleOnly = !fields.name?.trim()) {
   renderForm();
   renderAssets();
   notify((edited ? "Đã lưu chỉnh sửa cho " : "Đã lưu ") + asset.name + ".");
+  if (edited) {
+    setWorkspaceView("saved");
+    find("saved-title").focus();
+  }
   return true;
 }
 
@@ -398,6 +433,7 @@ function editAsset(asset) {
   }
   renderForm();
   notify("Đang sửa " + asset.name + ".");
+  setWorkspaceView("entry");
   inputs[editingTitle ? "title" : "name"].focus();
   persistHousehold();
 }
@@ -730,13 +766,18 @@ form.addEventListener("submit", event => {
   saveAsset();
 });
 cancel.addEventListener("click", () => {
+  const edited = Boolean(editingId);
   if (recognition) releaseMic();
   editingId = null;
   hideKeypad();
   form.reset();
   renderForm();
   persistHousehold();
-  notify("Đã xóa nội dung đang nhập.");
+  notify(edited ? "Đã hủy chỉnh sửa." : "Đã xóa nội dung đang nhập.");
+  if (edited) {
+    setWorkspaceView("saved");
+    find("saved-title").focus();
+  }
 });
 window.addEventListener("storage", event => {
   if (event.key === storageKeys[mode] || event.key === storageKey || event.key === null) renderAssets();
@@ -777,6 +818,7 @@ function download(payload, filename) {
 function activateHousehold(record) {
   releaseMic();
   hideKeypad();
+  setWorkspaceView("entry");
   activeHousehold = record;
   mode = record.draft?.mode === "tree" ? "tree" : "house";
   editingId = record[mode].some(item => item.id === record.draft?.editingId) ? record.draft.editingId : null;
