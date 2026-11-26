@@ -7,9 +7,9 @@
   <title>VHD Voice · Nhập liệu hiện trường</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/icon-180.png">
-  <link rel="stylesheet" href="./field.css?v=2.6">
+  <link rel="stylesheet" href="./field.css?v=2.7">
   <link rel="stylesheet" href="./report.css">
-  <script type="module" src="./unified.mjs?v=2.6"></script>
+  <script type="module" src="./unified.mjs?v=2.7"></script>
 </head>
 <body>
   <header class="topbar">
@@ -47,6 +47,14 @@
         <button type="button" class="secondary" id="backup-all" hidden>Sao lưu toàn bộ</button>
         <input id="file-input" type="file" accept=".json,application/json" hidden>
       </div>
+      <details class="input-settings">
+        <summary>Cài đặt nhập liệu</summary>
+        <label class="setting-option">
+          <input type="checkbox" id="catalog-suggestions" aria-describedby="catalog-suggestions-help" checked>
+          Gợi ý tên theo bảng giá
+        </label>
+        <p id="catalog-suggestions-help">Khi tắt, gợi ý lấy từ các tên đã lưu của hộ đang mở.</p>
+      </details>
       <details id="trash" hidden>
         <summary>Hồ sơ đã xóa</summary>
         <ul id="trash-list"></ul>
