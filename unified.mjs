@@ -107,11 +107,13 @@ function loadAssets() {
 const nameKey = value => value.trim().normalize("NFC").toLocaleLowerCase("vi").replace(/\s+/gu, " ");
 const searchableName = key => key.normalize("NFD").replace(/\p{M}/gu, "").replaceAll("đ", "d");
 const catalogWords = value => value.match(/[\p{L}\p{N}]+/gu) ?? [];
+function indexName(name, searchable = searchableName(nameKey(name))) {
+  const words = catalogWords(searchable);
+  return { name, words, key: words.join(" ") };
+}
+
 const indexedCatalog = Object.fromEntries(Object.entries(assetCatalog).map(([group, names]) => [
-  group, names.map(name => {
-    const words = catalogWords(searchableName(nameKey(name)));
-    return { name, words, key: words.join(" ") };
-  }),
+  group, names.map(name => indexName(name)),
 ]));
 
 function nearCatalogWord(term, word) {
@@ -125,39 +127,40 @@ function nearCatalogWord(term, word) {
     || (typed[0] === candidate[1] && typed[1] === candidate[0] && typed.slice(2) === candidate.slice(2));
 }
 
-function catalogRank(entry, phrase, terms) {
-  if (entry.key === phrase) return 0;
-  if (entry.key.startsWith(phrase)) return 1;
-  if (entry.key.includes(phrase)) return 2;
+function matchesCatalogName(entry, phrase, terms, allowTypo) {
+  if (entry.key.includes(phrase)) return true;
   let hasTypo = false;
   for (const term of terms) {
     if (entry.words.some(word => word.startsWith(term))) continue;
-    if (hasTypo || !entry.words.some(word => nearCatalogWord(term, word))) return -1;
+    if (!allowTypo || hasTypo || !entry.words.some(word => nearCatalogWord(term, word))) return false;
     hasTypo = true;
   }
-  return hasTypo ? 4 : 3;
+  return true;
 }
 
-function catalogNameMatches(query) {
-  const terms = catalogWords(query);
-  if (!terms.length) return [];
+function nameMatches(query, allowTypo = false) {
+  const terms = catalogSuggestions.checked ? catalogWords(query) : [];
   const phrase = terms.join(" ");
-  const matches = [];
-  for (const entry of indexedCatalog[mode]) {
-    const rank = catalogRank(entry, phrase, terms);
-    if (rank >= 0) matches.push({ name: entry.name, rank });
-  }
-  matches.sort((a, b) => a.rank - b.rank || a.name.length - b.name.length);
-  return matches.slice(0, 30).map(match => match.name);
-}
-
-function householdNameMatches(query) {
   const matches = new Map();
   for (const asset of activeHousehold[mode]) {
     if (asset.kind === "title" || typeof asset.name !== "string") continue;
     const key = nameKey(asset.name);
-    if (!matches.has(key) && searchableName(key).includes(query)) matches.set(key, asset.name.trim());
+    if (matches.has(key)) continue;
+    const searchable = searchableName(key);
+    if (searchable.includes(query) || (phrase && matchesCatalogName(indexName(asset.name, searchable), phrase, terms, allowTypo))) {
+      matches.set(key, asset.name.trim());
+    }
   }
+
+  if (phrase) {
+    for (const entry of indexedCatalog[mode]) {
+      if (matches.size >= 30) break;
+      if (!matchesCatalogName(entry, phrase, terms, allowTypo)) continue;
+      const key = nameKey(entry.name);
+      if (!matches.has(key)) matches.set(key, entry.name);
+    }
+  }
+  if (!matches.size && phrase && !allowTypo) return nameMatches(query, true);
   return [...matches.values()];
 }
 
@@ -187,7 +190,7 @@ function renderNameSuggestions() {
   const query = searchableName(nameKey(inputs.name.value));
   if (!query || !activeHousehold || document.activeElement !== inputs.name) return;
 
-  const matches = catalogSuggestions.checked ? catalogNameMatches(query) : householdNameMatches(query);
+  const matches = nameMatches(query);
   if (!matches.length) return;
   for (const [index, name] of matches.entries()) {
     const option = document.createElement("li");
